@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Document</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="signature mail" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css">
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script type="text/javascript">
+        function recupInfosForm() {
+            // récupération des données entrées par l'utilisateur et envoi des informations dans le formulaire de template
+            let givenName = document.getElementById("givenName").value;                // prénom
+            //console.log("givenName = " + givenName);
+            let sn = document.getElementById("sn").value;                              // nom de famille
+            //console.log("sn = " + sn);
+            let userName = givenName + " " + sn;                                       // concatène le nom et le prénom pour en faire une unité
+            //console.log("userName = " + userName);
+            let userTitle = document.getElementById("userTitle").value;                // description de la fonction
+            //console.log("userTitle = " + userTitle);
+            let userPhone = document.getElementById("userPhone").value;                // téléphone professionnel
+            //console.log("userPhone = " + userPhone);
+            let userGSM = document.getElementById("userGSM").value;                    // mobile
+            //console.log("userGSM = " + userGSM);
+
+            let template = document.getElementById("template").value;                  // template choisi
+            //console.log("template = " + template);
+            let signatureName = document.getElementById("signatureName").value;        // nom choisi pour la signature
+            //console.log("signatureName = " + signatureName);
+
+            // choix du template à afficher en fonction de celui qui a été choisi
+            let result = "";
+            switch (template) {// affichage du template choisi à l'endroit donné dans le formulaire
+                case 'template_Win':
+                    result = $('#newSignature').load('./template_Win.html',
+                        function () {
+                            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userName', userName);
+                            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userTitle', userTitle);
+                            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userPhoneFormat', userPhone);
+                            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userGSMFormat', userGSM);
+                        });
+                    break;
+                case 'template_WinEvents':
+                    result = $('#newSignature').load('./template_WinEvents.html',
+                        function () {
+                            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userName', userName);
+                            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userTitle', userTitle);
+                            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userPhoneFormat', userPhone);
+                            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userGSMFormat', userGSM);
+                        });
+                    break;
+                case 'template_WDC':
+                    result = $('#newSignature').load('./template_WDC.html',
+                        function () {
+                            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userName', userName);
+                            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userTitle', userTitle);
+                            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userPhoneFormat', userPhone);
+                            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userGSMFormat', userGSM);
+                        });
+                    break;
+            }
+            return userName, userTitle, userPhone, userGSM;
+        }
+
+        $(document).ready(function () {
+
+            $('#template').on("change", function (e) {
+                e.preventDefault();
+                // sanitize des inputs du formulaire
+                // cf hackers-poulette (en php)
+
+                recupInfosForm();
+            });
+
+            $('#btnEnregistrer').on("click", function (e) {
+                e.preventDefault();
+
+                // récupération des données entrées par l'utilisateur et envoi des informations dans le formulaire de template
+                recupInfosForm();
+                console.log("userName = " + userName);
+                // récupération depuis formData
+                // 1. récupération
+                // 2. ajax
+                // 3. app.js avec fonction
+                // 4. fonction pour l'enregistrement à l'endroit donné (comme le projet de l'upload)
+                // 5. insertion de la nouvelle signature dans Outlook
+
+            });
+        });
+
+    </script>
+
+
+</head>
+
+<body>
+    <form action="" method="POST" id="formSignature" name="formSignature">
+        <label target="givenName">Prénom :</label>
+        <input type="text" name="givenName" id="givenName" value="Fred" disabled="disabled"> <!-- prénom -->
+
+        <label target="sn">Nom :</label>
+        <input type="text" name="sn" id="sn" value="Bail" disabled="disabled"><br> <!-- nom de famille -->
+
+        <label target="userTitle">Fonction :</label>
+        <input type="text" name="userTitle" id="userTitle" value="Description de la fonction" required><br>
+
+        <label target="userPhone">Téléphone :</label>
+        <input type="text" name="userPhone" id="userPhone" value="081 123 456"><br>
+
+        <label target="userGSM">Mobile :</label>
+        <input type="text" name="userGSM" id="userGSM" value="0479606330"><br>
+
+        <label target="template">Choix du Template :</label>
+        <select name="template" id="template" required>
+            <option value="" selected>--- Select template ---</option>
+            <option value="template_Win">template_Win</option>
+            <option value="template_WinEvents">template_WinEvents</option>
+            <option value="template_WDC">template_WDC</option>
+        </select><br>
+
+        <label target="signatureName">Nom de la signature :</label>
+        <input type="text" name="signatureName" id="signatureName" value="signature" required><br>
+
+        <!-- <button value="Verification" id="btnVerification" class="btn btn-primary">Verification</button> -->
+
+        <!-- div d'affichage du résultat du template choisi avec la signature modifiée -->
+        <div class="row" id="newSignature"></div>
+    </form>
+
+    <form action="" method="POST" id="formTemplate" name="formTemplate">
+
+
+        <input type="submit" value="Enregistrer" id="btnEnregistrer" class="btn btn-secondary">
+    </form>
+
+</body>
+
+</html>
