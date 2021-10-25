@@ -1,0 +1,414 @@
+// variables required
+const express = require('express');
+const https = require('https');
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const dotenv = require('dotenv');
+const debug = require('debug');
+const nodeSSPI = require('node-sspi');
+const formidable = require('formidable');
+const cors = require('cors');
+const url = require('url');
+const ldap = require('ldapjs');
+const download = require('download-file');
+const replaceInFile = require('replace-in-file');
+
+const fctExt = require('./fct.js');
+require('dotenv').config();
+
+// variables utilisables globales
+const app = express();
+
+// variables de connexion pour le LDAP
+let ldap_host = process.env.LDAP_HOST;
+let ldap_user = process.env.LDAP_USER;
+let ldap_pass = process.env.LDAP_PASS;
+let base_dn = process.env.BASE_DN;
+let ldap_port = process.env.LDAP_PORT;
+
+// serveur et client ldap
+// pour le ldap : port 389
+//let client = ldap.createClient({ url: 'ldap://' + ldap_host + '/' + ldap_port });
+
+// serveur et client ldaps (sécurisé)
+// pour le ldaps : port 636
+tlsOptions = { 'rejectUnauthorized': false }
+let client = ldap.createClient({ url: 'ldaps://' + ldap_host + ':' + ldap_port + '/', tlsOptions: tlsOptions });
+
+//ldap.Attribute.settings.guid_format = ldap.GUID_FORMAT_X;
+let currentUser;
+
+// variables environnement
+let port = process.env.PORT;
+
+// get port from environment and store in Express
+app.set('port', port);
+
+app.set('views', path.join(__dirname, 'views'));
+
+// view engine setup
+app.engine('html', require('ejs').renderFile);
+app.set('view engine', 'html');
+
+// création du serveur
+let server = https.createServer({
+    key: fs.readFileSync('c:/rpti/staff.win.be.key'),
+    cert: fs.readFileSync('c:/rpti/staff.win.be.cer')
+}, app);
+
+// listen on provided port, on all network interfaces
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true }));        // body-parser est maintenant inclus dans express, on le note ainsi pour pouvoir récupérer les données
+app.use((req, res, next) => {                           // cors
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
+
+app.use((req, res, next) => {
+    var nodeSSPIObj = new nodeSSPI({
+        retrieveGroups: false
+    })
+    nodeSSPIObj.authenticate(req, res, (err) => {
+        res.finished || next()
+        if (req.connection.user) {
+            console.log(req.connection.user + ' authenticated!\n');
+            currentUser = req.connection.user.match(/WIN.(\w{3})/i)[1];
+            console.log("currentUserDeNodeSSPIObj = " + currentUser);
+            console.log(currentUser + ' authenticated!');
+            return currentUser;
+        }
+    })
+});
+
+app.get('/', (req, res, next) => {
+    let listeUser = []; // récupère les informations récupérées via le LDAP
+    let infosCurrentUser = {};
+
+    console.log("test = " + currentUser);
+    // retourne les infos de ldap en fonction de l'utilisateur en cours
+    let opts = {
+        filter: '(&(objectCategory=Person)(sAMAccountName=' + currentUser + '))',
+        port: ldap_port,
+        scope: 'sub',
+        attributes: ['givenname', 'sn', 'description', 'telephoneNumber', 'mobile']
+    };
+
+    console.log("opts.filter / opts.port = " + opts.filter + " / " + opts.port);
+
+    // On se connect en tant que "ldap_user"
+    client.bind(ldap_user, ldap_pass, function (err, req) {
+
+        console.log("ldap_user / ldap_pass = " + ldap_user + " / " + ldap_pass);
+
+        // on fait une recherche dans "base_dn" avec les options "opts"
+        client.search(base_dn, opts, function (err, search) {
+
+            console.log("base_dn / opts = " + base_dn + " / " + opts);
+
+            search.on('searchRequest', (searchRequest) => {
+                console.log('searchRequest: ', searchRequest.messageID);
+            });
+
+            // A chaque entrée trouvée, l’événement searchEntry se déclenche
+            search.on('searchEntry', function (entry) {
+                console.log('entry: ' + JSON.stringify(entry.object));
+                infosCurrentUser = {
+                    "sn": entry.object.sn,
+                    "givenName": entry.object.givenName,
+                    "userTitle": entry.object.description,
+                    "userPhone": entry.object.telephoneNumber,
+                    "userGSM": entry.object.mobile
+                }
+
+                console.log("infosCurrentUser.sn = " + infosCurrentUser.sn);
+
+                // On sauvegarde les données de chaque entrée dans le tableau "listeUser"
+                listeUser.push(infosCurrentUser);
+
+                listeUser.forEach(element => {
+                    console.log(element);
+                });
+
+                return infosCurrentUser;
+            });
+
+            console.log("infosCurrentUser.sn = " + infosCurrentUser.sn);
+
+            search.on('searchReference', function (referral) {
+                console.log('referral: ' + referral.uris.join());
+            });
+            search.on('error', function (err) {
+                console.error('error: ' + err.message);
+            });
+            // Se déclenche quand la recherche est terminée
+            search.on('end', function (result) {     // rend les informations du LDAP pour les mettre dans le formulaire
+
+                //res.render(__dirname + '/views/index.html', { liste: JSON.stringify(listeUser) });
+                res.render(__dirname + '/views/index.html', {
+                    trigramme: currentUser,
+                    givenName: infosCurrentUser.givenName,
+                    sn: infosCurrentUser.sn,
+                    userTitle: infosCurrentUser.userTitle,
+                    userPhone: infosCurrentUser.userPhone,
+                    userGSM: infosCurrentUser.userGSM
+                });
+            });
+        });
+    });
+});
+
+app.get('/getHtmlTemplate', (req, res, next) => {
+    // retourne le template choisi par l'utilisateur pour l'afficher en vérification
+    let templateFromHtml = req.query.templateName;
+    console.log('templateFromHtml = ' + templateFromHtml);
+
+    switch (templateFromHtml) {// affichage du template choisi à l'endroit donné dans le formulaire
+        case 'template_Win':
+            res.sendFile(path.join(__dirname + '/template_Win.htm'));
+            break;
+        case 'template_WinEvents':
+            res.sendFile(path.join(__dirname + '/template_WinEvents.htm'));
+            break;
+        case 'template_WDC':
+            res.sendFile(path.join(__dirname + '/template_WDC.htm'));
+            break;
+    }
+});
+
+
+
+app.post('/saveTemplate', (req, res, next) => {
+    // enregistre le template choisi avec les données
+    const form = formidable({ multiples: true, uploadDir: './' });
+
+    form.parse(req, (err, fields, files) => {
+
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ fields, files }, null, 2));
+
+        console.log({ fields, files });
+
+        // on récupère les champs nécessaires qui sont envoyées dans le formulaire
+        let trigramme = fields.trigramme;
+        let userName = fields.userName;
+        let userTitle = fields.userTitle;
+        let userPhone = fields.userPhone;
+        let userGSM = fields.userGSM;
+        let template = fields.template;
+        let signatureNameHtm = fields.signatureName + '.htm';
+        let signatureNameTxt = fields.signatureName + '.txt';
+        let htmlTemplate = fields.htmlTemplate;
+        console.log("trigramme3 = " + trigramme + " / userName3 = " + userName + " / userTitle3 = " + userTitle + " / userPhone3 = " + userPhone + " / userGSM3 = " + userGSM + " / template3 = " + template + " / signatureNameHtm = " + signatureNameHtm + " / signatureNameTxt = " + signatureNameTxt);
+
+        let initialSignatureTemplate = '';
+        let signatureTemplateTxt = '';
+
+        console.log('htmlTemplate dans app.js = ' + htmlTemplate);
+
+        console.log('dirname = ' + __dirname);
+        let dirname = __dirname;
+        let dirnameFull = dirname.replace('D:\\', '\\\\thalassa\\d$\\');
+        console.log("dirnameFull = " + dirnameFull);
+
+        signatureTemplateHtm = dirnameFull + '/' + signatureNameHtm;
+        signatureTemplateTxt = dirnameFull + '/' + signatureNameTxt;
+        console.log('signatureTemplateHtm = ' + signatureTemplateHtm + ' / signatureTemplateTxt = ' + signatureTemplateTxt);
+
+        // destination du template à l'endroit désiré
+        let destinationFolder = 'C:\\Users\\' + trigramme + '\\AppData\\Roaming\\Microsoft\\Signatures\\';
+        console.log("destination = " + destinationFolder);
+        let destHtm = path.join(destinationFolder, signatureNameHtm)
+        //console.log("destHtm = " + destHtm);
+        let destTxt = path.join(destinationFolder, signatureNameTxt);
+        //console.log("destTxt = " + destTxt);
+
+        // vérifie que le folder qui va recevoir le fichier existe
+        if (!fs.existsSync(destHtm)) {         // s'il n'existe pas on va le créer
+            fs.mkdirSync(destHtm);
+            console.log('mkdir destHtm');
+        }
+        if (!fs.existsSync(destTxt)) {         // s'il n'existe pas on va le créer
+            fs.mkdirSync(destTxt);
+            console.log('mkdir destTxt');
+        }
+
+        switch (template) {
+            case 'template_Win':
+                fs.copyFile('./template_Win.htm', signatureNameHtm, (err) => {
+                    if (err) console.log(err);
+                    console.log('copie du template Win htm ok');
+                });
+                fs.copyFile('./template_Win_text.txt', signatureNameTxt, (err) => {
+                    if (err) console.log(err);
+                    console.log('copie du template Win txt ok');
+                });
+                break;
+            case 'template_WinEvents':
+                fs.copyFile('./template_WinEvents.htm', signatureNameHtm, (err) => {
+                    if (err) console.log(err);
+                    console.log('copie du template WinEvents htm ok');
+                });
+                fs.copyFile('./template_Win_text.txt', signatureNameTxt, (err) => {
+                    if (err) console.log(err);
+                    console.log('copie du template WinEvents txt ok');
+                });
+                break;
+            case 'template_WDC':
+                fs.copyFile('./template_WDC.htm', signatureNameHtm, (err) => {
+                    if (err) console.log(err);
+                    console.log('copie du template WDC htm ok');
+                });
+                fs.copyFile('./template_WDC_text.txt', signatureNameTxt, (err) => {
+                    if (err) console.log(err);
+                    console.log('copie du template WDC txt ok');
+                });
+                break;
+        }
+
+        /* Test de remplacement des informations user dans le fichier */
+        /*const regexName = new RegExp('$' + 'userName', 'g');
+        const regexTitle = new RegExp('$' + 'userTitle', 'g');
+        const regexPhone = new RegExp('$' + 'userPhone', 'g');
+        const regexPhoneFormat = new RegExp('$' + 'userPhoneFormat', 'g');
+        const regexGSM = new RegExp('$' + 'userGSM', 'g');
+        const regexGSMFormat = new RegExp('$' + 'userGSMFormat', 'g');
+        console.log("regexGSMFormat = " + regexGSMFormat);*/
+
+        // options de remplacement
+
+
+
+        fctExt.remplacementDansFichier('./abcde.txt');
+
+
+
+
+        // remplacement synchrone de plusieurs fichiers
+        /*try {
+            let changedFiles = replace.sync(optionsReplace);
+            console.log('Modified files:', changedFiles.join(', '));
+
+            console.log('path existe ? = ' + fs.existsSync(dirnameFull));
+        }
+        catch (error) {
+            console.error('Error occurred:', error);
+        }*/
+
+        /*let text = '$username is empty';
+
+        console.log('text = ' + text);
+
+        let textReplaced = text.replace('$username', 'test');
+
+        console.log('text remplacé = ' + textReplaced);*/
+
+        /* Fin de test de remplacement des informations user dans le fichier */
+
+        //#######################################
+
+        /* Test de download-file */
+        //const urlHtm = signatureTemplateHtm;
+        /*const urlHtm = 'C:/Users/FBI/Documents/abcde.txt';
+
+        const optionsDownload = {
+            //directory: destinationFolder,
+            directory: 'C:/Users/FBI/Downloads/',
+            //filename: signatureNameHtm
+            filename: 'abcde.txt'
+        };
+
+        console.log("optionsDownload = " + optionsDownload);
+
+        download(urlHtm, optionsDownload, (err) => {
+            if (err) throw err;
+            console.log("download-file ok");
+        });*/
+
+        // Url of the image
+        /*const file = '\\\\thalassa\\d$\\web-repository\\selligentxat\\fbi\\signature\\abcde.txt';
+        // Path at which image will get downloaded
+        const filePath = 'C:\\Users\\FBI\\AppData\\Roaming\\Microsoft\\Signatures\\abcde.txt';
+
+        download(file, filePath)
+            .then(() => {
+                console.log('Download Completed');
+            })*/
+
+        /*//const url = signatureTemplateHtm; // link to file you want to download
+        const urlData = '\\\\thalassa\\d$\\web-repository\\selligentxat\\fbi\\signature\\abcde.txt';
+        //const path = path.join(destinationFolder, signatureNameHtm); // where to save a file
+        const pathData = 'C:\\Users\\FBI\\AppData\\Roaming\\Microsoft\\Signatures\\abcde.txt';
+
+        const request = http.get(urlData, function (response) {
+            if (response.statusCode === 200) {
+                var file = fs.createWriteStream(pathData);
+                response.pipe(file);
+            }
+            request.setTimeout(60000, function () { // if after 60s file not downlaoded, we abort a request 
+                request.abort();
+            });
+        });*/
+
+
+        /* Fin du test de download-file */
+
+
+
+
+        /*fs.copyFile(signatureTemplateHtm, destHtm, (err) => {                             // Error: EPERM: operation not permitted, copyfile '\\thalassa\......htm' -> 'C:\Users\fbi\........htm'
+            if (err) console.log(err);
+            console.log('copyFile du template.htm');
+            //remplaceData(signatureNameHtm, userName, userTitle, userPhone, userGSM);    // /!\ supprime tout le contenu de mon fichier
+        });
+
+        fs.copyFile(signatureTemplateTxt, destTxt, (err) => {
+            if (err) console.log(err);
+            console.log('copyFile du template.txt');
+            //remplaceData(signatureNameTxt, userName, userTitle, userPhone, userGSM);    // /!\ supprime tout le contenu de mon fichier
+        });*/
+
+        // on lance la fonction qui va faire l'upload du fichier sélectionné
+
+    });
+
+});
+
+function onError(error) { // Event listener for https server "error" event
+    if (error.syscall !== 'listen') {
+        throw error;
+    }
+
+    let bind = typeof port === 'string'
+        ? 'Pipe ' + port
+        : 'Port ' + port;
+
+    // handle specific listen errors with friendly messages
+    switch (error.code) {
+        case 'EACCES':
+            console.error(bind + ' requires elevated privileges');
+            process.exit(1);
+            break;
+        case 'EADDRINUSE':
+            console.error(bind + ' is already in use');
+            process.exit(1);
+            break;
+        default:
+            throw error;
+    }
+}
+
+function onListening() { // Event listener for https server "listening" event
+    let addr = server.address();
+    let bind = typeof addr === 'string'
+        ? 'pipe ' + addr
+        : 'port ' + addr.port;
+    debug('Listening on ' + bind);
+    console.log('listening on port ' + addr.port);
+}

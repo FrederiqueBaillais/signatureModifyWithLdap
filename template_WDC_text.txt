@@ -1,0 +1,7 @@
+$userName
+$userTitle
+
+$userGSMFormat
+$userPhoneFormat
+
+https://www.waldc.be

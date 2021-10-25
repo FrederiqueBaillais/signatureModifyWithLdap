@@ -1,0 +1,30 @@
+{
+  "name": "signature",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "debug": "^4.3.2",
+    "dotenv": "^10.0.0",
+    "download-file": "^0.1.5",
+    "ejs": "^3.1.6",
+    "express": "^4.17.1",
+    "formidable": "^1.2.2",
+    "fs": "^0.0.1-security",
+    "http": "0.0.1-security",
+    "https": "^1.0.0",
+    "ldapjs": "^2.3.1",
+    "node-sspi": "^0.2.9",
+    "nodemon": "^2.0.12",
+    "path": "^0.12.7",
+    "replace-in-file": "^6.3.1",
+    "url": "^0.11.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "nodemon run app.js"
+  },
+  "author": "FBI",
+  "license": "ISC"
+}
