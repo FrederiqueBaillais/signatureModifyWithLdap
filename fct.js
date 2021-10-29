@@ -1,5 +1,7 @@
-let fs = require('fs');
-
+const fs = require('fs');
+const replace = require('replace-in-file');
+const downloadFile = require('download-file');
+const https = require('https');
 
 function normalizePhone(phone) { //normalize string and remove all unnecessary characters
     //check if number length equals to 10
@@ -21,90 +23,88 @@ function normalizeGSM(phone) { //normalize string and remove all unnecessary cha
     return null;
 }
 
-function remplaceData(signatureNameHtm, userName, userTitle, userPhone, userGSM) {
-    fs.createWriteStream(signatureNameHtm);
-
-    signatureNameHtm.replace('$userName', userName);
-    signatureNameHtm.replace('$userTitle', userTitle);
-
-    if (userPhone == '') {
-        signatureNameHtm.replace('$userPhone', '');
-        signatureNameHtm.replace('$userPhoneFormat', '');
-    } else {
-        signatureNameHtm.replace('$userPhone', userPhone);
-        signatureNameHtm.replace('$userPhoneFormat', normalizePhone(userPhone));
-    }
-
-    if (userGSM == '') {
-        signatureNameHtm.replace('$userGSM', '');
-        signatureNameHtm.replace('$userGSMFormat', '');
-    } else {
-        signatureNameHtm.replace('$userGSM', userGSM);
-        signatureNameHtm.replace('$userGSMFormat', normalizeGSM(userGSM));
-    }
-    console.log('remplaceData');
-    return null;
-}
-
-/*function remplacementDansFichier() {
-    const optionsReplace = {
-        files: './abcde.txt',
-        from: 'essai',
-        to: 'test',
-    };
-    // remplacement asynchrone d'un seul fichier
-    try {
-        const results = await replaceInFile(optionsReplace);
-        console.log('Replacement results:', results);
-    }
-    catch (error) {
-        console.error('Error occurred:', error);
-    }
-    return 1;
-}*/
-
-function remplacementDansFichier(someFile) {
-    const regTest = '$userName';
-    const regexName = new RegExp('$', 'userName', 'g');
-    const regexTest = new RegExp('\$' + 'userName', 'g');
-    //const regexTitle = new RegExp('userTitle', 'g');
-    //const regexPhone = new RegExp('\$' + 'userPhone', 'g');
-    //const regexPhoneFormat = new RegExp('userPhoneFormat', 'g');
-    //const regexGSM = new RegExp('$' + 'userGSM', 'g');
-    //const regexGSMFormat = new RegExp('$' + 'userGSMFormat', 'g');
-    console.log("regex = " + regexTest);
-
-    fs.readFile(someFile, 'utf8', function (err, data) {
+function remplaceInfos(fileToChange, userName, userTitle, userPhone, userPhoneFormat, userGSM, userGSMFormat) {
+    // remplacement des informations dans le fichier .txt
+    fs.readFile(fileToChange, 'utf8', (err, data) => {
         if (err) console.log(err);
 
-        console.log("regex existe ? = " + regTest.match(regexName));
-
-
-        let result = data.replace(regexTest, 'bidulle');
-        //let result2 = data.split(regexDollar);
-        //let result2 = data.replace(/\$/, '');
-
-        fs.writeFile(someFile, result, 'utf8', function (err) {
-            if (err) return console.log(err);
-            console.log('result1');
+        //Load the library and specify options
+        const options = {
+            files: fileToChange,
+            from: ["$userName", "$userTitle", "$userPhoneFormat", "$userPhone", "$userGSMFormat", "$userGSM"],
+            to: [userName, userTitle, userPhoneFormat, userPhone, userGSMFormat, userGSM],
+        };
+        replace(options, (error, results) => {
+            if (error) {
+                return console.error('Error occurred:', error);
+            }
+            console.log('Replacement results:', results);
         });
-
-        /*fs.writeFile(someFile, result2, 'utf8', function (err) {
-            if (err) return console.log(err);
-            console.log('result2');
-        });*/
     });
 }
 
-function downloadFile() {
+function remplacementDansFichier(fileTxt, fileHtm, userName, userTitle, userPhone, userPhoneFormat, userGSM, userGSMFormat) {
+    remplaceInfos(fileTxt, userName, userTitle, userPhone, userPhoneFormat, userGSM, userGSMFormat);
+    remplaceInfos(fileHtm, userName, userTitle, userPhone, userPhoneFormat, userGSM, userGSMFormat);
+}
 
+function downloadOfFile2(signatureTemplateTxt, destTxt, cb) {
+    var file = fs.createWriteStream(destTxt);
+    console.log("signatureTemplateTxt = " + signatureTemplateTxt);
+    var request = https.get(signatureTemplateTxt, (response) => {
+        response.pipe(file);
+        file.on('finish', () => {
+            file.close(cb);  // close() is async, call cb after close completes.
+        });
+    }).on('error', (err) => { // Handle errors
+        fs.unlink(destTxt); // Delete the file async. (But we don't check the result)
+        if (cb) cb('est-ce de ce côté ? = ' + err.message);
+    });
+};
+
+function downloaderOfOneFile(templateComplete, destination, signatureName) {
+    const optionsDownload = {
+        directory: destination,
+        filename: signatureName
+    }
+
+    downloadFile(templateComplete, optionsDownload, function (err) {
+        if (err) console.log(err);
+        console.log("Youhou");
+    })
+}
+
+function downloadOfFile(destTxt, destHtm, destinationFolder, signatureNameTxt, signatureNameHtm) {
+    downloaderOfOneFile(destTxt, destinationFolder, signatureNameTxt);
+    downloaderOfOneFile(destHtm, destinationFolder, signatureNameHtm);
+}
+
+function copyFileInRemote(initialFile, destinationFile) {
+    //let uploadDir = initialFile;
+    // __dirname means relative to script. Use "./data.txt" if you want it relative to execution path.
+    fs.readFile(initialFile + "", (error, data) => {
+        if (error) {
+            throw error;
+        }
+        console.log(data.toString());
+        fs.writeFile(destinationFile, data, (err) => {
+            if (err) console.log('writeFile :: ' + err);
+        })
+    });
+}
+
+function linksOnButton(signatureTemplateHtm, signatureTemplateTxt) {
+    //window.document.getElementById("btnDownloadHtm").onclick = signatureTemplateHtm;
+    //window.document.getElementById("btnDownloadTxt").onclick = signatureTemplateTxt;
 }
 
 
 module.exports = {
     normalizePhone,
     normalizeGSM,
-    remplaceData,
     remplacementDansFichier,
-    downloadFile
+    downloadOfFile,
+    downloadOfFile2,
+    copyFileInRemote,
+    linksOnButton
 }

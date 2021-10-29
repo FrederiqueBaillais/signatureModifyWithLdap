@@ -65,6 +65,7 @@ server.on('listening', onListening);
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));        // body-parser est maintenant inclus dans express, on le note ainsi pour pouvoir récupérer les données
+app.use(express.static('public'));
 app.use((req, res, next) => {                           // cors
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -167,7 +168,7 @@ app.get('/', (req, res, next) => {
 app.get('/getHtmlTemplate', (req, res, next) => {
     // retourne le template choisi par l'utilisateur pour l'afficher en vérification
     let templateFromHtml = req.query.templateName;
-    console.log('templateFromHtml = ' + templateFromHtml);
+    //console.log('templateFromHtml = ' + templateFromHtml);
 
     switch (templateFromHtml) {// affichage du template choisi à l'endroit donné dans le formulaire
         case 'template_Win':
@@ -182,8 +183,6 @@ app.get('/getHtmlTemplate', (req, res, next) => {
     }
 });
 
-
-
 app.post('/saveTemplate', (req, res, next) => {
     // enregistre le template choisi avec les données
     const form = formidable({ multiples: true, uploadDir: './' });
@@ -196,186 +195,58 @@ app.post('/saveTemplate', (req, res, next) => {
         console.log({ fields, files });
 
         // on récupère les champs nécessaires qui sont envoyées dans le formulaire
-        let trigramme = fields.trigramme;
+        //let trigramme = fields.trigramme;
         let userName = fields.userName;
         let userTitle = fields.userTitle;
         let userPhone = fields.userPhone;
+        if (userPhone != '') { userPhoneFormat = fctExt.normalizePhone(userPhone); } else { userPhoneFormat = ''; }
         let userGSM = fields.userGSM;
+        if (userGSM != '') { userGSMFormat = fctExt.normalizePhone(userGSM); } else { userGSMFormat = ''; }
         let template = fields.template;
-        let signatureNameHtm = fields.signatureName + '.htm';
-        let signatureNameTxt = fields.signatureName + '.txt';
-        let htmlTemplate = fields.htmlTemplate;
-        console.log("trigramme3 = " + trigramme + " / userName3 = " + userName + " / userTitle3 = " + userTitle + " / userPhone3 = " + userPhone + " / userGSM3 = " + userGSM + " / template3 = " + template + " / signatureNameHtm = " + signatureNameHtm + " / signatureNameTxt = " + signatureNameTxt);
+        let signatureNameHtm = './public/' + fields.signatureName + '.htm';
+        let signatureNameTxt = './public/' + fields.signatureName + '.txt';
+        //let htmlTemplate = fields.htmlTemplate;
+        //console.log("trigramme3 = " + trigramme + " / userName3 = " + userName + " / userTitle3 = " + userTitle + " / userPhone3 = " + userPhone + " / userGSM3 = " + userGSM + " / template3 = " + template + " / signatureNameHtm = " + signatureNameHtm + " / signatureNameTxt = " + signatureNameTxt);
 
-        let initialSignatureTemplate = '';
-        let signatureTemplateTxt = '';
-
-        console.log('htmlTemplate dans app.js = ' + htmlTemplate);
-
-        console.log('dirname = ' + __dirname);
-        let dirname = __dirname;
-        let dirnameFull = dirname.replace('D:\\', '\\\\thalassa\\d$\\');
-        console.log("dirnameFull = " + dirnameFull);
-
-        signatureTemplateHtm = dirnameFull + '/' + signatureNameHtm;
-        signatureTemplateTxt = dirnameFull + '/' + signatureNameTxt;
-        console.log('signatureTemplateHtm = ' + signatureTemplateHtm + ' / signatureTemplateTxt = ' + signatureTemplateTxt);
-
-        // destination du template à l'endroit désiré
-        let destinationFolder = 'C:\\Users\\' + trigramme + '\\AppData\\Roaming\\Microsoft\\Signatures\\';
-        console.log("destination = " + destinationFolder);
-        let destHtm = path.join(destinationFolder, signatureNameHtm)
-        //console.log("destHtm = " + destHtm);
-        let destTxt = path.join(destinationFolder, signatureNameTxt);
-        //console.log("destTxt = " + destTxt);
-
-        // vérifie que le folder qui va recevoir le fichier existe
-        if (!fs.existsSync(destHtm)) {         // s'il n'existe pas on va le créer
-            fs.mkdirSync(destHtm);
-            console.log('mkdir destHtm');
-        }
-        if (!fs.existsSync(destTxt)) {         // s'il n'existe pas on va le créer
-            fs.mkdirSync(destTxt);
-            console.log('mkdir destTxt');
-        }
+        //console.log('htmlTemplate dans app.js = ' + htmlTemplate);
 
         switch (template) {
             case 'template_Win':
-                fs.copyFile('./template_Win.htm', signatureNameHtm, (err) => {
+                fs.copyFileSync('./template_Win.htm', signatureNameHtm, (err) => {
                     if (err) console.log(err);
                     console.log('copie du template Win htm ok');
                 });
-                fs.copyFile('./template_Win_text.txt', signatureNameTxt, (err) => {
+                fs.copyFileSync('./template_Win_text.txt', signatureNameTxt, (err) => {
                     if (err) console.log(err);
                     console.log('copie du template Win txt ok');
                 });
                 break;
             case 'template_WinEvents':
-                fs.copyFile('./template_WinEvents.htm', signatureNameHtm, (err) => {
+                fs.copyFileSync('./template_WinEvents.htm', signatureNameHtm, (err) => {
                     if (err) console.log(err);
                     console.log('copie du template WinEvents htm ok');
                 });
-                fs.copyFile('./template_Win_text.txt', signatureNameTxt, (err) => {
+                fs.copyFileSync('./template_Win_text.txt', signatureNameTxt, (err) => {
                     if (err) console.log(err);
                     console.log('copie du template WinEvents txt ok');
                 });
                 break;
             case 'template_WDC':
-                fs.copyFile('./template_WDC.htm', signatureNameHtm, (err) => {
+                fs.copyFileSync('./template_WDC.htm', signatureNameHtm, (err) => {
                     if (err) console.log(err);
                     console.log('copie du template WDC htm ok');
                 });
-                fs.copyFile('./template_WDC_text.txt', signatureNameTxt, (err) => {
+                fs.copyFileSync('./template_WDC_text.txt', signatureNameTxt, (err) => {
                     if (err) console.log(err);
                     console.log('copie du template WDC txt ok');
                 });
                 break;
         }
 
-        /* Test de remplacement des informations user dans le fichier */
-        /*const regexName = new RegExp('$' + 'userName', 'g');
-        const regexTitle = new RegExp('$' + 'userTitle', 'g');
-        const regexPhone = new RegExp('$' + 'userPhone', 'g');
-        const regexPhoneFormat = new RegExp('$' + 'userPhoneFormat', 'g');
-        const regexGSM = new RegExp('$' + 'userGSM', 'g');
-        const regexGSMFormat = new RegExp('$' + 'userGSMFormat', 'g');
-        console.log("regexGSMFormat = " + regexGSMFormat);*/
-
-        // options de remplacement
-
-
-
-        fctExt.remplacementDansFichier('./abcde.txt');
-
-
-
-
-        // remplacement synchrone de plusieurs fichiers
-        /*try {
-            let changedFiles = replace.sync(optionsReplace);
-            console.log('Modified files:', changedFiles.join(', '));
-
-            console.log('path existe ? = ' + fs.existsSync(dirnameFull));
-        }
-        catch (error) {
-            console.error('Error occurred:', error);
-        }*/
-
-        /*let text = '$username is empty';
-
-        console.log('text = ' + text);
-
-        let textReplaced = text.replace('$username', 'test');
-
-        console.log('text remplacé = ' + textReplaced);*/
-
-        /* Fin de test de remplacement des informations user dans le fichier */
-
-        //#######################################
-
-        /* Test de download-file */
-        //const urlHtm = signatureTemplateHtm;
-        /*const urlHtm = 'C:/Users/FBI/Documents/abcde.txt';
-
-        const optionsDownload = {
-            //directory: destinationFolder,
-            directory: 'C:/Users/FBI/Downloads/',
-            //filename: signatureNameHtm
-            filename: 'abcde.txt'
-        };
-
-        console.log("optionsDownload = " + optionsDownload);
-
-        download(urlHtm, optionsDownload, (err) => {
-            if (err) throw err;
-            console.log("download-file ok");
-        });*/
-
-        // Url of the image
-        /*const file = '\\\\thalassa\\d$\\web-repository\\selligentxat\\fbi\\signature\\abcde.txt';
-        // Path at which image will get downloaded
-        const filePath = 'C:\\Users\\FBI\\AppData\\Roaming\\Microsoft\\Signatures\\abcde.txt';
-
-        download(file, filePath)
-            .then(() => {
-                console.log('Download Completed');
-            })*/
-
-        /*//const url = signatureTemplateHtm; // link to file you want to download
-        const urlData = '\\\\thalassa\\d$\\web-repository\\selligentxat\\fbi\\signature\\abcde.txt';
-        //const path = path.join(destinationFolder, signatureNameHtm); // where to save a file
-        const pathData = 'C:\\Users\\FBI\\AppData\\Roaming\\Microsoft\\Signatures\\abcde.txt';
-
-        const request = http.get(urlData, function (response) {
-            if (response.statusCode === 200) {
-                var file = fs.createWriteStream(pathData);
-                response.pipe(file);
-            }
-            request.setTimeout(60000, function () { // if after 60s file not downlaoded, we abort a request 
-                request.abort();
-            });
-        });*/
-
-
-        /* Fin du test de download-file */
-
-
-
-
-        /*fs.copyFile(signatureTemplateHtm, destHtm, (err) => {                             // Error: EPERM: operation not permitted, copyfile '\\thalassa\......htm' -> 'C:\Users\fbi\........htm'
-            if (err) console.log(err);
-            console.log('copyFile du template.htm');
-            //remplaceData(signatureNameHtm, userName, userTitle, userPhone, userGSM);    // /!\ supprime tout le contenu de mon fichier
-        });
-
-        fs.copyFile(signatureTemplateTxt, destTxt, (err) => {
-            if (err) console.log(err);
-            console.log('copyFile du template.txt');
-            //remplaceData(signatureNameTxt, userName, userTitle, userPhone, userGSM);    // /!\ supprime tout le contenu de mon fichier
-        });*/
-
-        // on lance la fonction qui va faire l'upload du fichier sélectionné
-
+        // Remplacement des informations user récupérées via le LDAP dans le nouveau fichier
+        fctExt.remplacementDansFichier(signatureNameTxt, signatureNameHtm, userName, userTitle, userPhone, userPhoneFormat, userGSM, userGSMFormat)
+        //fctExt.linksOnButton(signatureTemplateHtm, signatureTemplateTxt);
+        //res.send(JSON.stringify({ 'pathToHtm': signatureTemplateHtm, 'pathToTxt': signatureTemplateTxt }));
     });
 
 });
