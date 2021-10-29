@@ -8,13 +8,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="signature mail" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css">
+    <!--<link rel="stylesheet" href="./assets/style.css">-->
 
+    <style type="text/css">
+        #formSignature {
+            margin: 10px;
+        }
+
+        body {
+            margin: 10px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #newSignature {
+            box-sizing: content-box;
+            width: 100%;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: none;
+        }
+
+        #btnDownloadHtm,
+        #btnDownloadTxt {
+            margin: 5px;
+        }
+
+        #spanHtm,
+        #spanTxt {
+            color: red;
+        }
+
+        p {
+            margin: 10px;
+        }
+
+        #miseEnGarde {
+            color: red;
+        }
+
+        #pathDownload,
+        #pathProc {
+            margin: 0 0 0 50px;
+            color: red;
+        }
+    </style>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-
     <script src='../fct.js'></script>
 
     <script type="text/javascript">
+
         function normalizePhone(phone) { //normalize string and remove all unnecessary characters
             //check if number length equals to 10
             if (phone.length == 11) {
@@ -57,6 +108,9 @@
 
     <script type="text/javascript">
         $(document).ready(function () {
+            document.getElementById("btnDownloadHtm").style.display = 'none';
+            document.getElementById("btnDownloadTxt").style.display = 'none';
+
             // récupération des informations liées à la session via le trigramme de la session Windows
             // app.use dans app.js
 
@@ -68,8 +122,8 @@
             let userPhone = document.getElementById("userPhone").value = '<%= userPhone %>';
             let userGSM = document.getElementById("userGSM").value = '<%= userGSM %>';
 
-            console.log("trigramme1st = " + trigramme);
-            console.log("givenNameDepart = " + givenName);
+            document.getElementById("pathProc").innerText = 'C:\\Users\\' + trigramme + '\\AppData\\Roaming\\Microsoft\\Signatures\\';
+
 
             let htmlTemplate = '';
 
@@ -87,10 +141,12 @@
                 let template = document.getElementById("template").value;                  // template choisi
                 let htmlTemplate = '';
                 let signatureName = document.getElementById("signatureName").value;        // nom choisi pour la signature
-                console.log("trigramme = " + trigramme + " / userName = " + newUserName + " / userTitle = " + newUserTitle + " / userPhone = " + newUserPhone + " / userGSM = " + newUserGSM + " / template = " + template + " / signatureName = " + signatureName);
+
+                document.getElementById("spanHtm").innerText = signatureName + '.htm';
+                document.getElementById("spanTxt").innerText = signatureName + '.txt';
 
                 // choix du template à afficher en fonction de celui qui a été choisi
-                $.ajax({                                                                   // permet de trouver le template choisi pour l'affichage
+                $.ajax({
                     data: { 'templateName': template },
                     method: "GET",
                     contentType: 'application/x-www-form-urlencoded',
@@ -120,24 +176,18 @@
 
                     let template = document.getElementById("template").value;                  // template choisi
                     let signatureName = document.getElementById("signatureName").value;        // nom choisi pour la signature
-                    console.log("trigramme2 = " + trigramme + " / userName2 = " + newUserName + " / userTitle2 = " + newUserTitle + " / userPhone2 = " + newUserPhone + " / userGSM2 = " + newUserGSM + " / template2 = " + template + " / signatureName2 = " + signatureName);
-
-                    //let newSignature = document.getElementById("newSignature");
-                    console.log('htmlTemplate dans btnEnregistrer = ' + htmlTemplate);
-                    // 1. récupération depuis formData
 
                     let formFrmSignature = new FormData($('#formSignature')[0]);
                     formFrmSignature.append('htmlTemplate', htmlTemplate);
 
-                    console.log("formFrmSignature = " + formFrmSignature);
+                    //console.log("formFrmSignature = " + formFrmSignature);
 
                     // Debug : Affichage des paires clefs/valeurs
-                    for (var e of formFrmSignature.entries()) {
+                    /*for (var e of formFrmSignature.entries()) {
                         console.log(e[0] + ' :: ' + e[1]);
-                    }
+                    }*/
 
-                    // 2. ajax
-
+                    // envoi des informations pour la création de la signature
                     $.ajax({
                         data: formFrmSignature,
                         method: "POST",
@@ -151,20 +201,60 @@
                         console.log("Oops !");
                     });
 
-                    // 3. app.js /saveTemplate avec fonction
-                    // 4. fonction pour l'enregistrement à l'endroit donné (comme le projet de l'upload)
-                    // 5. insertion de la nouvelle signature dans Outlook
+                    $('#btnDownloadHtm').on("click", function (e) {
+                        let signName = document.getElementById('signatureName').value;
 
+                        //console.log('test = '+ window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/' + signName + '.htm');
+                        document.getElementById("linkHtm").setAttribute("href", window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/' + signName + '.htm');
+                        document.getElementById("linkHtm").setAttribute("download", signName + '.htm');
+                        //console.log('es-tu là ?');
+                        $("#linkHtm").click();
+                    });
+
+                    $('#btnDownloadTxt').on("click", function (e) {
+                        let signName = document.getElementById('signatureName').value;
+
+                        //console.log('test = ' + window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/' + signName + '.txt');
+                        document.getElementById("linkTxt").setAttribute("href", window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/' + signName + '.txt');
+                        document.getElementById("linkTxt").setAttribute("download", signName + '.txt');
+                        //console.log('es-tu ici ?');
+                        $("#linkTxt").click();
+                    });
                 });
             });
         });
 
+        function linksToDownload() {
+            let signName = document.getElementById('signatureName').value;
+            let templChoice = document.getElementById('template').value;
+            if ((signName != '') && (templChoice != '')) {
+                document.getElementById("btnEnregistrer").style.display = "none";
+                document.getElementById("btnDownloadHtm").style.display = "block";
+                document.getElementById("btnDownloadTxt").style.display = "block";
+            }
+        }
     </script>
-
-
 </head>
 
 <body>
+    <script>
+        (function () {
+            if (window.localStorage) {
+                if (!localStorage.getItem('firstLoad')) {
+                    localStorage['firstLoad'] = true;
+                    window.location.reload();
+                }
+                else
+                    localStorage.removeItem('firstLoad');
+            }
+        })();
+    </script>
+
+    <h1>Formulaire de modification des informations de la signature pour Outlook</h1>
+    <hr>
+    <p id='miseEnGarde'>
+        Si vos données ne s'affichent pas directement, veuillez réactualiser la page.
+    </p>
     <form method="POST" id="formSignature" name="formSignature" enctype="multipart/form-data">
         <input type="text" name="trigramme" id="trigramme" hidden>
         <input type="text" name="userName" id="userName" hidden>
@@ -196,9 +286,33 @@
         </select><br>
 
         <!-- div d'affichage du résultat du template choisi avec la signature modifiée -->
-        <div class="row" id="newSignature"></div>
-        <button id="btnEnregistrer" class="btn btn-secondary">Enregistrer</button>
+        <div class="col" id="newSignature"></div>
+        <button id="btnEnregistrer" class="btn btn-secondary" onclick='linksToDownload()'>Enregistrer</button>
     </form>
+
+    <div class="row" id="btnDwnld">
+        <a id="linkHtm">
+            <button id="btnDownloadHtm" class="btn btn-secondary">Télécharger la signature formatée</button>
+        </a>
+        <a id="linkTxt">
+            <button id="btnDownloadTxt" class="btn btn-secondary">Télécharger la signature texte</button>
+        </a>
+    </div>
+    <div class="row" id="procedure">
+        <p id="paragProc">
+            Après avoir enregistré la signature qui vous convient, cliquer sur chaque bouton pour télécharger la
+            nouvelle signature. <br>
+            Merci de bien vérifier que vous avez cliqué sur les 2 boutons. Deux fichiers seront alors téléchargés,
+            un fichier <span id="spanHtm">.htm</span> et un fichier <span id="spanTxt">.txt</span>. <br><br>
+            Les fichiers téléchargés sont dans votre dossier de téléchargement par défaut.
+        </p>
+        <p>
+            Vous devrez copier ces 2 fichiers et les coller dans le dossier rattaché aux signatures Outlook pour
+            pouvoir les utiliser. <br>
+            <!-- Ce dossier se situe <a id="hrefProc" href="">ici</a> -->
+            Ce dossier se situe là : <span id="pathProc"></span>
+        </p>
+    </div>
 
 </body>
 
