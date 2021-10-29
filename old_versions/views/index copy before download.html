@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Document</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="signature mail" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css">
+
+    <!-- CSS -->
+    <style type="text/css">
+        #formSignature {
+            margin: 10px;
+        }
+
+        body {
+            margin: 10px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #newSignature {
+            box-sizing: content-box;
+            width: 100%;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: none;
+        }
+
+        #btnDownloadHtm,
+        #btnDownloadTxt {
+            margin: 5px;
+        }
+
+        p {
+            margin: 10px;
+        }
+
+        #pathDownload,
+        #pathProc {
+            margin: 0 0 0 50px;
+            color: red;
+        }
+    </style>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    <script src='../fct.js'></script>
+
+    <script type="text/javascript">
+        function normalizePhone(phone) { //normalize string and remove all unnecessary characters
+            //check if number length equals to 10
+            if (phone.length == 11) {
+                //reformat and return phone number
+                return phone.replace(/^\+?(\d{2})(\d{2})(\d{3})(\d{3})/, "+$1 $2 $3 $4");
+            }
+
+            return null;
+        }
+
+        function normalizeGSM(phone) { //normalize string and remove all unnecessary characters
+            //check if number length equals to 10
+            if (phone.length == 12) {
+                //reformat and return phone number
+                return phone.replace(/^\+?(\d{2})(\d{3})(\d{3})(\d{3})/, "+$1 $2 $3 $4");
+            }
+
+            return null;
+        }
+
+        function loadingTemplate(userNameTemplate, userTitleTemplate, userPhoneTemplate, userGSMTemplate) { //change les codes du template avec les infos de l'appli pour l'affichage
+            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userName', userNameTemplate);
+            document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userTitle', userTitleTemplate);
+            if (userPhoneTemplate == '') {
+                document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userPhone', '');
+                document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userPhoneFormat', '');
+            } else {
+                document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userPhone', userPhoneTemplate);
+                document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userPhoneFormat', normalizePhone(userPhoneTemplate));
+            }
+            if (userGSMTemplate == '') {
+                document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userGSM', '');
+                document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userGSMFormat', '');
+            } else {
+                document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userGSM', userGSMTemplate);
+                document.getElementById("newSignature").innerHTML = document.getElementById("newSignature").innerHTML.replace('$userGSMFormat', normalizeGSM(userGSMTemplate));
+            }
+        }
+    </script>
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            /*window.onload = function () {
+                if (!window.location.hash) {
+                    window.location = window.location + '#loaded';
+                    window.location.reload();
+                }
+            }*/
+            document.getElementById("btnDownloadHtm").style.display = 'none';
+            document.getElementById("btnDownloadTxt").style.display = 'none';
+
+            // récupération des informations liées à la session via le trigramme de la session Windows
+            // app.use dans app.js
+
+            // intégration des infos user dans le formulaire /* résultat des infos obtenues avec le LDAP */
+            let trigramme = document.getElementById("trigramme").value = '<%= trigramme %>';
+            let givenName = document.getElementById("givenName").value = '<%= givenName %>';
+            let sn = document.getElementById("sn").value = '<%= sn %>';
+            let userTitle = document.getElementById("userTitle").value = '<%= userTitle %>';
+            let userPhone = document.getElementById("userPhone").value = '<%= userPhone %>';
+            let userGSM = document.getElementById("userGSM").value = '<%= userGSM %>';
+
+            console.log("trigramme1st = " + trigramme);
+            console.log("givenNameDepart = " + givenName);
+
+
+            //document.getElementById("pathDownload").innerText = 'C:\\Downloads\\';
+            //document.getElementById("hrefProc").href = 'C:\\Users\\' + trigramme + '\\AppData\\Roaming\\Microsoft\\Signatures\\';
+            document.getElementById("pathProc").innerText = 'C:\\Users\\' + trigramme + '\\AppData\\Roaming\\Microsoft\\Signatures\\';
+
+
+            let htmlTemplate = '';
+
+            $('#template').on("change", function (e) {
+                e.preventDefault();
+
+                // récupération des données éventuellement modifiées par l'utilisateur et envoi des informations dans le visuel du template
+                let newGivenName = document.getElementById("givenName").value;             // prénom
+                let newSn = document.getElementById("sn").value;                           // nom de famille
+                let newUserName = newGivenName + " " + newSn;                              // concatène le nom et le prénom pour en faire une unité
+                let newUserTitle = document.getElementById("userTitle").value;             // description de la fonction
+                let newUserPhone = document.getElementById("userPhone").value;             // téléphone professionnel
+                let newUserGSM = document.getElementById("userGSM").value;                 // mobile
+
+                let template = document.getElementById("template").value;                  // template choisi
+                let htmlTemplate = '';
+                let signatureName = document.getElementById("signatureName").value;        // nom choisi pour la signature
+                console.log("trigramme = " + trigramme + " / userName = " + newUserName + " / userTitle = " + newUserTitle + " / userPhone = " + newUserPhone + " / userGSM = " + newUserGSM + " / template = " + template + " / signatureName = " + signatureName);
+
+                document.getElementById("spanHtm").innerText = signatureName;
+                document.getElementById("spanTxt").innerText = signatureName;
+                //document.getElementById("pathDownload").innerText = 'C:\\Downloads\\' + signatureName + '.htm et C:\\Downloads\\' + signatureName + '.txt';
+
+                // choix du template à afficher en fonction de celui qui a été choisi
+                $.ajax({                                                                   // permet de trouver le template choisi pour l'affichage
+                    data: { 'templateName': template },
+                    method: "GET",
+                    contentType: 'application/x-www-form-urlencoded',
+                    url: "/getHtmlTemplate",
+                }).done(function (result) {
+                    console.log("template done !");
+                    htmlTemplate = result;
+                    console.log('htmlTemplate = ' + htmlTemplate);
+                    $('#newSignature').html(htmlTemplate);
+                    loadingTemplate(newUserName, newUserTitle, newUserPhone, newUserGSM);
+                }).fail(function (result) {
+                    console.log("bad request !");
+                });
+
+                $('#btnEnregistrer').on("click", function (e) {
+                    e.preventDefault();
+                    //alert('test');
+
+                    // récupération des données entrées par l'utilisateur et envoi des informations dans le formulaire de template
+                    let newGivenName = document.getElementById("givenName").value;             // prénom
+                    let newSn = document.getElementById("sn").value;                           // nom de famille
+                    let newUserName = givenName + " " + sn;                                    // concatène le nom et le prénom pour en faire une unité
+                    document.getElementById("userName").value = newUserName;
+                    let newUserTitle = document.getElementById("userTitle").value;             // description de la fonction
+                    let newUserPhone = document.getElementById("userPhone").value;             // téléphone professionnel
+                    let newUserGSM = document.getElementById("userGSM").value;                 // mobile
+
+                    let template = document.getElementById("template").value;                  // template choisi
+                    let signatureName = document.getElementById("signatureName").value;        // nom choisi pour la signature
+                    console.log("trigramme2 = " + trigramme + " / userName2 = " + newUserName + " / userTitle2 = " + newUserTitle + " / userPhone2 = " + newUserPhone + " / userGSM2 = " + newUserGSM + " / template2 = " + template + " / signatureName2 = " + signatureName);
+
+                    //let newSignature = document.getElementById("newSignature");
+                    console.log('htmlTemplate dans btnEnregistrer = ' + htmlTemplate);
+                    // 1. récupération depuis formData
+
+                    let formFrmSignature = new FormData($('#formSignature')[0]);
+                    formFrmSignature.append('htmlTemplate', htmlTemplate);
+
+                    console.log("formFrmSignature = " + formFrmSignature);
+
+                    // Debug : Affichage des paires clefs/valeurs
+                    for (var e of formFrmSignature.entries()) {
+                        console.log(e[0] + ' :: ' + e[1]);
+                    }
+
+                    // 2. ajax
+
+                    $.ajax({
+                        data: formFrmSignature,
+                        method: "POST",
+                        enctype: "multipart/form-data",
+                        url: "/saveTemplate",
+                        processData: false,                                                    // tell jQuery not to process the data
+                        contentType: false                                                     // tell jQuery not to set contentType
+                    }).done(function (result) {
+                        console.log("Well done !");
+                        document.getElementById("linkHtm").href = signatureTemplateHtm;
+                        document.getElementById("linkHtm").download = signatureName + '.htm';
+                        document.getElementById("linkTxt").href = signatureTemplateTxt;
+                        document.getElementById("linkTxt").download = signatureName + '.txt';
+                    }).fail(function (result) {
+                        console.log("Oops !");
+                    });
+
+                    // 3. app.js /saveTemplate avec fonction
+                    // 4. fonction pour l'enregistrement à l'endroit donné (comme le projet de l'upload)
+                    // 5. insertion de la nouvelle signature dans Outlook
+
+                });
+            });
+        });
+        function linksToDownload() {
+            let signName = document.getElementById('signatureName').value;
+            let templChoice = document.getElementById('template').value;
+            if ((signName != '') && (templChoice != '')) {
+                document.getElementById("btnEnregistrer").style.display = "none";
+                document.getElementById("btnDownloadHtm").style.display = "block";
+                document.getElementById("btnDownloadTxt").style.display = "block";
+
+            }
+
+        }
+
+    </script>
+
+
+</head>
+
+<body>
+    <h1>Formulaire de modification des informations de la signature pour Outlook</h1>
+    <hr>
+    <form method="POST" id="formSignature" name="formSignature" enctype="multipart/form-data">
+        <input type="text" name="trigramme" id="trigramme" hidden>
+        <input type="text" name="userName" id="userName" hidden>
+
+        <label target="givenName">Prénom :</label>
+        <input type="text" name="givenName" id="givenName" disabled="disabled"> <!-- prénom -->
+
+        <label target="sn">Nom :</label>
+        <input type="text" name="sn" id="sn" disabled="disabled"><br> <!-- nom de famille -->
+
+        <label target="userTitle">Fonction :</label>
+        <input type="text" name="userTitle" id="userTitle" required><br>
+
+        <label target="userPhone">Téléphone (en commençant par +32) :</label>
+        <input type="text" name="userPhone" id="userPhone"><br>
+
+        <label target="userGSM">Mobile (en commençant par +32) :</label>
+        <input type="text" name="userGSM" id="userGSM"><br>
+
+        <label target="signatureName">Nom de la signature :</label>
+        <input type="text" name="signatureName" id="signatureName" value="" required><br>
+
+        <label target="template">Choix du Template :</label>
+        <select name="template" id="template" required>
+            <option value="" selected>--- Select template ---</option>
+            <option value="template_Win">template_Win</option>
+            <option value="template_WinEvents">template_WinEvents</option>
+            <option value="template_WDC">template_WDC</option>
+        </select><br>
+
+        <!-- div d'affichage du résultat du template choisi avec la signature modifiée -->
+        <div class="col" id="newSignature"></div>
+        <button id="btnEnregistrer" class="btn btn-secondary" onclick='linksToDownload()'>Enregistrer</button>
+        <div class="row" id="btnDwnld">
+            <a href='' download='' id="linkHtm">
+                <button id="btnDownloadHtm" class="btn btn-secondary">Télécharger la signature formatée</button>
+            </a>
+            <a href='' download='' id="linkTxt">
+                <button id="btnDownloadTxt" class="btn btn-secondary">Télécharger la signature texte</button>
+            </a>
+        </div>
+        <div class="row" id="procedure">
+            <p id="paragProc">
+                Après avoir enregistré la signature qui vous convient, cliquer sur chaque bouton pour télécharger la
+                nouvelle signature. <br>
+                Merci de bien vérifier que vous avez cliqué sur les 2 boutons. Deux fichiers seront alors téléchargés,
+                un fichier <span id="spanHtm"></span>.htm et un fichier <span id="spanTxt"></span>.txt. <br><br>
+                Les fichiers téléchargés sont dans votre dossier de téléchargement par défaut.
+            </p>
+            <!--             <div id="pathDownload"></div><br> -->
+            <p>
+                Vous devrez copier ces 2 fichiers et les coller dans le dossier rattaché aux signatures Outlook pour
+                pouvoir les utiliser. <br>
+                <!-- Ce dossier se situe <a id="hrefProc" href="">ici</a> -->
+                Ce dossier se situe là : <br>
+            </p>
+            <div id="pathProc"></div>
+        </div>
+    </form>
+
+</body>
+
+</html>
