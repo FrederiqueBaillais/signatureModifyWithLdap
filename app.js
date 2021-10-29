@@ -79,10 +79,10 @@ app.use((req, res, next) => {
     nodeSSPIObj.authenticate(req, res, (err) => {
         res.finished || next()
         if (req.connection.user) {
-            console.log(req.connection.user + ' authenticated!\n');
+            //console.log(req.connection.user + ' authenticated!\n');
             currentUser = req.connection.user.match(/WIN.(\w{3})/i)[1];
-            console.log("currentUserDeNodeSSPIObj = " + currentUser);
-            console.log(currentUser + ' authenticated!');
+            //console.log("currentUserDeNodeSSPIObj = " + currentUser);
+            //console.log(currentUser + ' authenticated!');
             return currentUser;
         }
     })
@@ -92,7 +92,7 @@ app.get('/', (req, res, next) => {
     let listeUser = []; // récupère les informations récupérées via le LDAP
     let infosCurrentUser = {};
 
-    console.log("test = " + currentUser);
+    //console.log("test = " + currentUser);
     // retourne les infos de ldap en fonction de l'utilisateur en cours
     let opts = {
         filter: '(&(objectCategory=Person)(sAMAccountName=' + currentUser + '))',
@@ -101,17 +101,17 @@ app.get('/', (req, res, next) => {
         attributes: ['givenname', 'sn', 'description', 'telephoneNumber', 'mobile']
     };
 
-    console.log("opts.filter / opts.port = " + opts.filter + " / " + opts.port);
+    //console.log("opts.filter / opts.port = " + opts.filter + " / " + opts.port);
 
     // On se connect en tant que "ldap_user"
     client.bind(ldap_user, ldap_pass, function (err, req) {
 
-        console.log("ldap_user / ldap_pass = " + ldap_user + " / " + ldap_pass);
+        //console.log("ldap_user / ldap_pass = " + ldap_user + " / " + ldap_pass);
 
         // on fait une recherche dans "base_dn" avec les options "opts"
         client.search(base_dn, opts, function (err, search) {
 
-            console.log("base_dn / opts = " + base_dn + " / " + opts);
+            //console.log("base_dn / opts = " + base_dn + " / " + opts);
 
             search.on('searchRequest', (searchRequest) => {
                 console.log('searchRequest: ', searchRequest.messageID);
@@ -128,19 +128,19 @@ app.get('/', (req, res, next) => {
                     "userGSM": entry.object.mobile
                 }
 
-                console.log("infosCurrentUser.sn = " + infosCurrentUser.sn);
+                //console.log("infosCurrentUser.sn = " + infosCurrentUser.sn);
 
                 // On sauvegarde les données de chaque entrée dans le tableau "listeUser"
                 listeUser.push(infosCurrentUser);
 
-                listeUser.forEach(element => {
+                /*listeUser.forEach(element => {
                     console.log(element);
-                });
+                });*/
 
                 return infosCurrentUser;
             });
 
-            console.log("infosCurrentUser.sn = " + infosCurrentUser.sn);
+            //console.log("infosCurrentUser.sn = " + infosCurrentUser.sn);
 
             search.on('searchReference', function (referral) {
                 console.log('referral: ' + referral.uris.join());
@@ -168,7 +168,6 @@ app.get('/', (req, res, next) => {
 app.get('/getHtmlTemplate', (req, res, next) => {
     // retourne le template choisi par l'utilisateur pour l'afficher en vérification
     let templateFromHtml = req.query.templateName;
-    //console.log('templateFromHtml = ' + templateFromHtml);
 
     switch (templateFromHtml) {// affichage du template choisi à l'endroit donné dans le formulaire
         case 'template_Win':
@@ -195,20 +194,16 @@ app.post('/saveTemplate', (req, res, next) => {
         console.log({ fields, files });
 
         // on récupère les champs nécessaires qui sont envoyées dans le formulaire
-        //let trigramme = fields.trigramme;
         let userName = fields.userName;
         let userTitle = fields.userTitle;
         let userPhone = fields.userPhone;
         if (userPhone != '') { userPhoneFormat = fctExt.normalizePhone(userPhone); } else { userPhoneFormat = ''; }
         let userGSM = fields.userGSM;
-        if (userGSM != '') { userGSMFormat = fctExt.normalizePhone(userGSM); } else { userGSMFormat = ''; }
+        if (userGSM != '') { userGSMFormat = fctExt.normalizeGSM(userGSM); } else { userGSMFormat = ''; }
         let template = fields.template;
         let signatureNameHtm = './public/' + fields.signatureName + '.htm';
         let signatureNameTxt = './public/' + fields.signatureName + '.txt';
-        //let htmlTemplate = fields.htmlTemplate;
-        //console.log("trigramme3 = " + trigramme + " / userName3 = " + userName + " / userTitle3 = " + userTitle + " / userPhone3 = " + userPhone + " / userGSM3 = " + userGSM + " / template3 = " + template + " / signatureNameHtm = " + signatureNameHtm + " / signatureNameTxt = " + signatureNameTxt);
-
-        //console.log('htmlTemplate dans app.js = ' + htmlTemplate);
+        //console.log(userGSM + '/' + userGSMFormat);
 
         switch (template) {
             case 'template_Win':
@@ -245,8 +240,7 @@ app.post('/saveTemplate', (req, res, next) => {
 
         // Remplacement des informations user récupérées via le LDAP dans le nouveau fichier
         fctExt.remplacementDansFichier(signatureNameTxt, signatureNameHtm, userName, userTitle, userPhone, userPhoneFormat, userGSM, userGSMFormat)
-        //fctExt.linksOnButton(signatureTemplateHtm, signatureTemplateTxt);
-        //res.send(JSON.stringify({ 'pathToHtm': signatureTemplateHtm, 'pathToTxt': signatureTemplateTxt }));
+
     });
 
 });

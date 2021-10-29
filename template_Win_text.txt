@@ -1,6 +1,6 @@
 $userName
 $userTitle
 
-$userPhoneFormat
-$userGSMFormat
+Tél. $userPhoneFormat
+Mob. $userGSMFormat
 https://www.win.be

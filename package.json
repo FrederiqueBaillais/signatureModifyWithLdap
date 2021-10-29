@@ -24,7 +24,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "nodemon run app.js"
+    "test": "nodemon run app.js",
+    "start": "nodemon run app.js"
   },
   "author": "FBI",
   "license": "ISC"

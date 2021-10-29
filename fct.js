@@ -28,6 +28,8 @@ function remplaceInfos(fileToChange, userName, userTitle, userPhone, userPhoneFo
     fs.readFile(fileToChange, 'utf8', (err, data) => {
         if (err) console.log(err);
 
+        //console.log('userGSM = ' + userGSM + ' / userGSMFormat = ' + userGSMFormat);
+
         //Load the library and specify options
         const options = {
             files: fileToChange,
@@ -48,63 +50,9 @@ function remplacementDansFichier(fileTxt, fileHtm, userName, userTitle, userPhon
     remplaceInfos(fileHtm, userName, userTitle, userPhone, userPhoneFormat, userGSM, userGSMFormat);
 }
 
-function downloadOfFile2(signatureTemplateTxt, destTxt, cb) {
-    var file = fs.createWriteStream(destTxt);
-    console.log("signatureTemplateTxt = " + signatureTemplateTxt);
-    var request = https.get(signatureTemplateTxt, (response) => {
-        response.pipe(file);
-        file.on('finish', () => {
-            file.close(cb);  // close() is async, call cb after close completes.
-        });
-    }).on('error', (err) => { // Handle errors
-        fs.unlink(destTxt); // Delete the file async. (But we don't check the result)
-        if (cb) cb('est-ce de ce côté ? = ' + err.message);
-    });
-};
-
-function downloaderOfOneFile(templateComplete, destination, signatureName) {
-    const optionsDownload = {
-        directory: destination,
-        filename: signatureName
-    }
-
-    downloadFile(templateComplete, optionsDownload, function (err) {
-        if (err) console.log(err);
-        console.log("Youhou");
-    })
-}
-
-function downloadOfFile(destTxt, destHtm, destinationFolder, signatureNameTxt, signatureNameHtm) {
-    downloaderOfOneFile(destTxt, destinationFolder, signatureNameTxt);
-    downloaderOfOneFile(destHtm, destinationFolder, signatureNameHtm);
-}
-
-function copyFileInRemote(initialFile, destinationFile) {
-    //let uploadDir = initialFile;
-    // __dirname means relative to script. Use "./data.txt" if you want it relative to execution path.
-    fs.readFile(initialFile + "", (error, data) => {
-        if (error) {
-            throw error;
-        }
-        console.log(data.toString());
-        fs.writeFile(destinationFile, data, (err) => {
-            if (err) console.log('writeFile :: ' + err);
-        })
-    });
-}
-
-function linksOnButton(signatureTemplateHtm, signatureTemplateTxt) {
-    //window.document.getElementById("btnDownloadHtm").onclick = signatureTemplateHtm;
-    //window.document.getElementById("btnDownloadTxt").onclick = signatureTemplateTxt;
-}
-
 
 module.exports = {
     normalizePhone,
     normalizeGSM,
-    remplacementDansFichier,
-    downloadOfFile,
-    downloadOfFile2,
-    copyFileInRemote,
-    linksOnButton
+    remplacementDansFichier
 }
