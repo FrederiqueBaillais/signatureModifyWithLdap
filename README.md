@@ -1,3 +1,5 @@
+> réalisé dans le cadre de mon stage de fin de formation Web Developper de chez BeCode dans l'entreprise Win (à Wierde)
+
 # signatureModifyWithLdap
 Node.js modify signature using LDAP
 
